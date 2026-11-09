@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 :root {
@@ -32,6 +31,7 @@ h1, h2, h3, .logo {
 a {
   color: inherit;
 }
+
 
 header {
   background: var(--white);
@@ -77,14 +77,22 @@ nav a:hover {
   color: var(--gold);
 }
 
+/* HERO */
+
 .hero {
   min-height: 440px;
   padding: 75px 8%;
   display: flex;
   align-items: center;
+
   background:
-    linear-gradient(100deg, rgba(36,51,41,.94), rgba(53,70,56,.78)),
+    linear-gradient(
+      100deg,
+      rgba(36,51,41,.94),
+      rgba(53,70,56,.78)
+    ),
     url('images/hero.jpg') center/cover;
+
   color: white;
 }
 
@@ -111,6 +119,8 @@ nav a:hover {
   line-height: 1.8;
 }
 
+/* BUTTONS */
+
 .button, button {
   display: inline-block;
   background: var(--olive);
@@ -124,19 +134,24 @@ nav a:hover {
   letter-spacing: .5px;
 }
 
-.button:hover, button:hover {
+.button:hover,
+button:hover {
   background: var(--dark-green);
 }
 
-.button-light, .secondary {
+.button-light,
+.secondary {
   background: transparent;
   color: var(--olive);
   border-color: var(--olive);
 }
 
-.button-light:hover, .secondary:hover {
+.button-light:hover,
+.secondary:hover {
   background: var(--beige);
 }
+
+/* SECTIONS */
 
 .section {
   max-width: 1180px;
@@ -164,10 +179,13 @@ nav a:hover {
   margin-bottom: 28px;
 }
 
+/* PRODUCT GRID */
+
 .grid {
   display: grid;
   grid-template-columns: repeat(
-    auto-fit, minmax(230px, 1fr)
+    auto-fit,
+    minmax(230px, 1fr)
   );
   gap: 22px;
 }
@@ -175,6 +193,13 @@ nav a:hover {
 .product-card {
   background: var(--white);
   border: 1px solid var(--line);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
 .product-card img {
@@ -183,6 +208,11 @@ nav a:hover {
   height: 260px;
   object-fit: cover;
   background: var(--beige);
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover img {
+  transform: scale(1.05);
 }
 
 .product-info {
@@ -210,12 +240,16 @@ nav a:hover {
   text-underline-offset: 4px;
 }
 
+/* BANNER */
+
 .banner {
   background: #eae3d7;
   padding: 28px;
   margin: 28px 0;
   border-left: 3px solid var(--gold);
 }
+
+/* FORMS */
 
 .form-box {
   max-width: 680px;
@@ -224,7 +258,9 @@ nav a:hover {
   border: 1px solid var(--line);
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   width: 100%;
   padding: 12px;
   border: 1px solid #d8d0c3;
@@ -240,6 +276,8 @@ label {
   font-weight: 700;
 }
 
+/* CART */
+
 .cart-row {
   display: flex;
   align-items: center;
@@ -250,12 +288,16 @@ label {
   flex-wrap: wrap;
 }
 
+/* NOTICE */
+
 .notice {
   padding: 15px;
   background: #f1eadc;
   border: 1px solid #dfd0b5;
   line-height: 1.7;
 }
+
+/* FOOTER */
 
 footer {
   background: var(--dark-green);
@@ -268,7 +310,10 @@ footer {
   margin-top: 25px;
 }
 
+/* АДАПТИВНОСТЬ */
+
 @media (max-width: 700px) {
+
   header {
     align-items: flex-start;
   }
@@ -285,30 +330,137 @@ footer {
   .product-card img {
     height: 230px;
   }
-}
-/* Анимация карточек товаров */
 
-.product-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-}
-
-/* Анимация изображения обуви */
-
-.product-card img {
-    transition: transform 0.3s ease;
-}
-
-.product-card:hover img {
-    transform: scale(1.05);
-}
-
-/* Анимация при нажатии */
+/* АНИМАЦИИ */
 
 .product-card:active {
-    transform: scale(0.97);
+  transform: scale(0.97);
+}
+
+/* ==========================
+   SIVVA ADMIN PANEL
+========================== */
+
+/* Статистика товаров */
+
+.admin-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+
+  background: #eae3d7;
+  padding: 20px 24px;
+  margin: 25px 0;
+
+  border-left: 3px solid var(--gold);
+}
+
+.admin-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.admin-summary-number {
+  color: var(--dark-green);
+  font: 500 34px 'Playfair Display', Georgia, serif;
+}
+
+/* Форма админки */
+
+.admin-form-box {
+  margin: 25px 0 45px;
+}
+
+.admin-form-box h2,
+.admin-list-section h2 {
+  margin-top: 0;
+}
+
+.admin-help {
+  font-size: 12px;
+  margin-top: -8px;
+}
+
+/* Список товаров */
+
+.admin-products {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-product {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 20px;
+
+  background: var(--white);
+  border: 1px solid var(--line);
+  padding: 14px;
+}
+
+.admin-product img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: var(--beige);
+}
+
+.admin-product-info h3 {
+  margin: 3px 0 6px;
+  font-size: 22px;
+}
+
+.admin-product-info p {
+  margin: 7px 0;
+}
+
+/* Кнопки управления */
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* Кнопка удаления */
+
+button.danger {
+  background: #8b3932;
+  border-color: #8b3932;
+  color: white;
+}
+
+button.danger:hover {
+  background: #6f2c27;
+}
+
+
+
+#cancelBtn {
+  display: none;
+}
+
+
+
+@media (max-width: 600px) {
+
+  .admin-product {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-product img {
+    height: 220px;
+  }
+
+  .admin-summary .button {
+    width: 100%;
+    text-align: center;
+  }
+
 }

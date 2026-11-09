@@ -1,364 +1,578 @@
 
-const products = [
-  { id: 1, title: "Classic Leather Sneakers", category: "sneakers", price: 12500, image: "images/shoe1.jpg", description: "Кожаные кроссовки в минималистичном стиле." },
-  { id: 2, title: "Street Luxury Sneakers", category: "sneakers", price: 15800, image: "images/shoe2.jpg", description: "Премиальные кроссовки для городских образов." },
-  { id: 3, title: "White Premium Sneakers", category: "sneakers", price: 13900, image: "images/shoe3.jpg", description: "Белые кроссовки с лаконичным дизайном." },
-  { id: 4, title: "Elegant Heel Shoes", category: "heels", price: 11200, image: "images/shoe4.jpg", description: "Элегантные туфли для особых случаев." },
-  { id: 5, title: "Black Classic Heels", category: "heels", price: 9800, image: "images/shoe5.jpg", description: "Классические чёрные туфли." },
-  { id: 6, title: "Evening Luxury Heels", category: "heels", price: 14500, image: "images/shoe6.jpg", description: "Вечерняя модель с выразительным силуэтом." },
-  { id: 7, title: "Leather Ankle Boots", category: "boots", price: 16900, image: "images/shoe7.jpg", description: "Кожаные ботинки на каждый день." },
-  { id: 8, title: "Winter Premium Boots", category: "boots", price: 18500, image: "images/shoe8.jpg", description: "Стильные ботинки для прохладной погоды." },
-  { id: 9, title: "Tall Elegant Boots", category: "boots", price: 21900, image: "images/shoe9.jpg", description: "Высокие сапоги с элегантным силуэтом." },
-  { id: 10, title: "Limited Edition Sneakers", category: "sneakers", price: 24500, image: "images/shoe10.jpg", description: "Выразительная модель из премиальной подборки." }
-];
+// ==========================================
+// SIVVA SHOP — ОСНОВНОЙ JAVASCRIPT
+// ==========================================
+
+const PRODUCTS_STORAGE_KEY = "sivvaProducts";
+
+let products = [];
 
 
-function formatPrice(price) {
-  return price.toLocaleString("ru-RU") + " сом";
+// ==========================================
+// Защита HTML от XSS
+// ==========================================
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
 }
 
-// Работа с корзиночкой
+
+// ==========================================
+// Форматирование цены
+// ==========================================
+
+function formatPrice(price) {
+    return Number(price || 0).toLocaleString("ru-RU") + " сом";
+}
+
+
+// ==========================================
+// READ — загрузка товаров
+// ==========================================
+
+async function loadProducts() {
+
+    const savedProducts = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+
+    if (savedProducts) {
+        try {
+            products = JSON.parse(savedProducts);
+
+            if (!Array.isArray(products)) {
+                throw new Error("Некорректный формат товаров");
+            }
+
+            return products;
+
+        } catch (error) {
+            console.error("Ошибка чтения товаров:", error);
+            localStorage.removeItem(PRODUCTS_STORAGE_KEY);
+        }
+    }
+
+    try {
+        const response = await fetch("./data.json");
+
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки: ${response.status}`);
+        }
+
+        products = await response.json();
+
+        if (!Array.isArray(products)) {
+            throw new Error("Файл data.json должен содержать массив товаров");
+        }
+
+        saveProducts();
+
+        return products;
+
+    } catch (error) {
+        console.error("Ошибка загрузки товаров:", error);
+        products = [];
+        return products;
+    }
+}
+
+
+// ==========================================
+// Сохранение товаров
+// ==========================================
+
+function saveProducts() {
+    localStorage.setItem(
+        PRODUCTS_STORAGE_KEY,
+        JSON.stringify(products)
+    );
+}
+
+
+// ==========================================
+// КОРЗИНА
+// ==========================================
+
 function getCart() {
-  let cart = localStorage.getItem("sivvaCart");
-  return cart ? JSON.parse(cart) : [];
+    try {
+        return JSON.parse(localStorage.getItem("sivvaCart") || "[]");
+    } catch {
+        return [];
+    }
 }
 
 function saveCart(cart) {
-  localStorage.setItem("sivvaCart", JSON.stringify(cart));
+    localStorage.setItem("sivvaCart", JSON.stringify(cart));
 }
 
+
+// ==========================================
+// ИЗБРАННОЕ
+// ==========================================
 
 function getFavorites() {
-  return JSON.parse(localStorage.getItem("sivvaFavorites") || "[]");
+    try {
+        return JSON.parse(
+            localStorage.getItem("sivvaFavorites") || "[]"
+        );
+    } catch {
+        return [];
+    }
 }
 
+
+// ==========================================
+// Создание карточки товара
+// ==========================================
 
 function productCard(product) {
-  return `
-    <div class="product-card">
-      <img
-        src="${product.image}"
-        alt="${product.title}"
-        loading="lazy"
-        onerror="this.onerror=null;this.src='https://placehold.co/600x500/e8dece/354638?text=SIVVA+SHOP'"
-      >
-      <div class="product-info">
-        <h3>${product.title}</h3>
-        <p class="muted">${product.description}</p>
-        <div class="price">${formatPrice(product.price)}</div>
-        <button onclick="addToCart(${product.id})">В корзину</button>
-        <button class="secondary" onclick="addToFavorites(${product.id})">
-          ♡ Избранное
-        </button>
-        <p>
-          <a href="product.html?id=${product.id}">
-            Подробнее о товаре →
-          </a>
-        </p>
-      </div>
-    </div>
-  `;
+    return `
+        <div class="product-card">
+
+            <img
+                src="${escapeHtml(product.image)}"
+                alt="${escapeHtml(product.title)}"
+                loading="lazy"
+                onerror="this.onerror=null;this.src='https://placehold.co/600x500/e8dece/354638?text=SIVVA+SHOP'"
+            >
+
+            <div class="product-info">
+
+                <h3>${escapeHtml(product.title)}</h3>
+
+                <p class="muted">
+                    ${escapeHtml(product.description)}
+                </p>
+
+                <div class="price">
+                    ${formatPrice(product.price)}
+                </div>
+
+                <button onclick="addToCart(${Number(product.id)})">
+                    В корзину
+                </button>
+
+                <button
+                    class="secondary"
+                    onclick="addToFavorites(${Number(product.id)})"
+                >
+                    ♡ Избранное
+                </button>
+
+                <p>
+                    <a href="product.html?id=${Number(product.id)}">
+                        Подробнее о товаре →
+                    </a>
+                </p>
+
+            </div>
+        </div>
+    `;
 }
 
+
+// ==========================================
+// Отображение товаров
+// ==========================================
 
 function renderProducts(list) {
-  let element = document.getElementById("productList");
-  if (!element) return;
-  element.innerHTML = list.map(productCard).join("");
+
+    const element = document.getElementById("productList");
+
+    if (!element) return;
+
+    element.innerHTML = list.length
+        ? list.map(productCard).join("")
+        : '<p class="muted">Товаров пока нет.</p>';
 }
+
+
+// ==========================================
+// CREATE — добавление в корзину
+// ==========================================
 
 function addToCart(id) {
-  let product = products.find(item => item.id === id);
-  if (!product) return;
 
-  let cart = getCart();
-  let cartItem = cart.find(item => item.id === id);
+    const product = products.find(
+        item => Number(item.id) === Number(id)
+    );
 
-  if (cartItem) {
-    cartItem.quantity += 1;
-  } else {
-    cart.push({ id: product.id, quantity: 1 });
-  }
-
-  saveCart(cart);
-  alert("Товар добавлен в корзину!");
-}
-
-function addToFavorites(id) {
-  let favorites = getFavorites();
-
-  if (favorites.includes(id)) {
-    alert("Этот товар уже в избранном.");
-  } else {
-    favorites.push(id);
-    localStorage.setItem("sivvaFavorites", JSON.stringify(favorites));
-    alert("Товар добавлен в избранное!");
-  }
-}
-
-
-function showCatalog(category) {
-  let list = products;
-
-  if (category !== "all") {
-    list = products.filter(product => product.category === category);
-  }
-
-  renderProducts(list);
-}
-
-
-function showCart() {
-  let cart = getCart();
-  let cartElement = document.getElementById("cartItems");
-  let totalElement = document.getElementById("cartTotal");
-
-  if (!cartElement || !totalElement) return;
-
-  cartElement.innerHTML = "";
-  let total = 0;
-
-  if (cart.length === 0) {
-    cartElement.innerHTML = "<p class='muted'>Корзина пока пуста.</p>";
-  }
-
-  cart.forEach(cartItem => {
-    let product = products.find(item => item.id === cartItem.id);
     if (!product) return;
 
-    let sum = product.price * cartItem.quantity;
-    total += sum;
+    const cart = getCart();
 
-    cartElement.innerHTML += `
-      <div class="cart-row">
-        <div>
-          <b>${product.title}</b><br>
-          <span class="muted">
-            ${formatPrice(product.price)} × ${cartItem.quantity}
-          </span>
-        </div>
-        <b>${formatPrice(sum)}</b>
-        <button class="secondary" onclick="removeFromCart(${product.id})">
-          Удалить
-        </button>
-      </div>
-    `;
-  });
+    const cartItem = cart.find(
+        item => Number(item.id) === Number(id)
+    );
 
-  totalElement.textContent = formatPrice(total);
+    if (cartItem) {
+        cartItem.quantity += 1;
+    } else {
+        cart.push({
+            id: product.id,
+            quantity: 1
+        });
+    }
+
+    saveCart(cart);
+
+    alert("Товар добавлен в корзину!");
 }
 
+
+// ==========================================
+// Добавление в избранное
+// ==========================================
+
+function addToFavorites(id) {
+
+    let favorites = getFavorites();
+
+    id = Number(id);
+
+    if (favorites.includes(id)) {
+        alert("Этот товар уже в избранном.");
+    } else {
+        favorites.push(id);
+
+        localStorage.setItem(
+            "sivvaFavorites",
+            JSON.stringify(favorites)
+        );
+
+        alert("Товар добавлен в избранное!");
+    }
+}
+
+
+// ==========================================
+// Фильтрация каталога
+// ==========================================
+
+function showCatalog(category) {
+
+    let list = products;
+
+    if (category !== "all") {
+        list = products.filter(
+            product => product.category === category
+        );
+    }
+
+    renderProducts(list);
+}
+
+
+// ==========================================
+// READ — отображение корзины
+// ==========================================
+
+function showCart() {
+
+    const cart = getCart();
+
+    const cartElement = document.getElementById("cartItems");
+    const totalElement = document.getElementById("cartTotal");
+
+    if (!cartElement || !totalElement) return;
+
+    cartElement.innerHTML = "";
+
+    let total = 0;
+
+    if (cart.length === 0) {
+        cartElement.innerHTML =
+            '<p class="muted">Корзина пока пуста.</p>';
+    }
+
+    cart.forEach(cartItem => {
+
+        const product = products.find(
+            item => Number(item.id) === Number(cartItem.id)
+        );
+
+        if (!product) return;
+
+        const sum = Number(product.price) * Number(cartItem.quantity);
+
+        total += sum;
+
+        cartElement.innerHTML += `
+            <div class="cart-row">
+
+                <div>
+                    <b>${escapeHtml(product.title)}</b>
+                    <br>
+
+                    <span class="muted">
+                        ${formatPrice(product.price)} × ${cartItem.quantity}
+                    </span>
+                </div>
+
+                <b>${formatPrice(sum)}</b>
+
+                <button
+                    class="secondary"
+                    onclick="removeFromCart(${Number(product.id)})"
+                >
+                    Удалить
+                </button>
+
+            </div>
+        `;
+    });
+
+    totalElement.textContent = formatPrice(total);
+}
+
+
+// ==========================================
+// Удаление из корзины
+// ==========================================
 
 function removeFromCart(id) {
-  let cart = getCart();
-  cart = cart.filter(item => item.id !== id);
-  saveCart(cart);
-  showCart();
+
+    let cart = getCart();
+
+    cart = cart.filter(
+        item => Number(item.id) !== Number(id)
+    );
+
+    saveCart(cart);
+
+    showCart();
 }
 
+
+// ==========================================
+// Отображение избранного
+// ==========================================
 
 function showFavorites() {
-  let favorites = getFavorites();
-  let favoriteProducts = products.filter(product => favorites.includes(product.id));
-  let element = document.getElementById("productList");
 
-  if (!element) return;
+    const favorites = getFavorites();
 
-  if (favoriteProducts.length === 0) {
-    element.innerHTML = "<p class='muted'>Пока нет избранных товаров.</p>";
-  } else {
+    const favoriteProducts = products.filter(
+        product => favorites.includes(Number(product.id))
+    );
+
     renderProducts(favoriteProducts);
-  }
 }
 
+
+// ==========================================
+// Подробная страница товара
+// ==========================================
 
 function showOneProduct() {
-  let params = new URLSearchParams(window.location.search);
-  let id = Number(params.get("id")) || 1;
-  let product = products.find(item => item.id === id);
-  let element = document.getElementById("oneProduct");
 
-  if (!element || !product) return;
+    const params = new URLSearchParams(
+        window.location.search
+    );
 
-  element.innerHTML = `
-    <div class="grid">
-      <div class="product-card">
-        <img
-          src="${product.image}"
-          alt="${product.title}"
-          loading="lazy"
-          onerror="this.onerror=null;this.src='https://placehold.co/600x500/e8dece/354638?text=SIVVA+SHOP'"
-        >
-      </div>
-      <div>
-        <h1>${product.title}</h1>
-        <p class="muted">${product.description}</p>
-        <h2 class="price">${formatPrice(product.price)}</h2>
-        <p class="muted">
-          Уточните доступный размер и наличие перед покупкой.
-        </p>
-        <button onclick="addToCart(${product.id})">
-          Добавить в корзину
-        </button>
-      </div>
-    </div>
-  `;
+    const id = Number(params.get("id")) || 1;
+
+    const product = products.find(
+        item => Number(item.id) === id
+    );
+
+    const element = document.getElementById("oneProduct");
+
+    if (!element) return;
+
+    if (!product) {
+        element.innerHTML =
+            '<p class="muted">Товар не найден.</p>';
+        return;
+    }
+
+    const specs = product.specs &&
+        typeof product.specs === "object"
+            ? Object.entries(product.specs).map(
+                ([key, value]) => `
+                    <p class="muted">
+                        <b>${escapeHtml(key)}:</b>
+                        ${escapeHtml(value)}
+                    </p>
+                `
+            ).join("")
+            : "";
+
+    element.innerHTML = `
+        <div class="grid">
+
+            <div class="product-card">
+
+                <img
+                    src="${escapeHtml(product.image)}"
+                    alt="${escapeHtml(product.title)}"
+                    onerror="this.onerror=null;this.src='https://placehold.co/600x500/e8dece/354638?text=SIVVA+SHOP'"
+                >
+
+            </div>
+
+            <div>
+
+                <h1>${escapeHtml(product.title)}</h1>
+
+                <p class="muted">
+                    ${escapeHtml(product.description)}
+                </p>
+
+                <h2 class="price">
+                    ${formatPrice(product.price)}
+                </h2>
+
+                ${specs}
+
+                <p class="muted">
+                    Уточните доступный размер и наличие перед покупкой.
+                </p>
+
+                <button onclick="addToCart(${Number(product.id)})">
+                    Добавить в корзину
+                </button>
+
+            </div>
+
+        </div>
+    `;
 }
 
 
+// ==========================================
+// Проверки формы заказа
+// ==========================================
 
 const fioRegex =
-  /^[А-ЯЁа-яёA-Za-z]+(?:[-'][А-ЯЁа-яёA-Za-z]+)*(?:\s+[А-ЯЁа-яёA-Za-z]+(?:[-'][А-ЯЁа-яёA-Za-z]+)*){1,2}$/;
-
+    /^[А-ЯЁа-яёA-Za-z]+(?:[-'][А-ЯЁа-яёA-Za-z]+)?(?:\s+[А-ЯЁа-яёA-Za-z]+(?:[-'][А-ЯЁа-яёA-Za-z]+)?){1,2}$/;
 
 const phoneRegex = /^\+996\d{9}$/;
 
-
 const emailRegex =
-  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 
+// ==========================================
+// Оформление заказа
+// ==========================================
 
 function submitOrder(event) {
-  event.preventDefault();
 
-  const name = document.getElementById("customerName").value.trim();
-  const phone = document.getElementById("customerPhone").value.trim();
-  const address = document.getElementById("customerAddress").value.trim();
-  const emailElement = document.getElementById("customerEmail");
+    event.preventDefault();
 
-  const email = emailElement ? emailElement.value.trim() : "";
+    const name = document
+        .getElementById("customerName")
+        .value.trim();
 
+    const phone = document
+        .getElementById("customerPhone")
+        .value.trim();
 
-  if (getCart().length === 0) {
-    alert("Сначала добавьте товар в корзину.");
-    return;
-  }
+    const address = document
+        .getElementById("customerAddress")
+        .value.trim();
 
+    const emailElement =
+        document.getElementById("customerEmail");
 
-  if (!fioRegex.test(name)) {
-    alert("Введите корректное ФИО: фамилию и имя.");
-    return;
-  }
+    const email = emailElement
+        ? emailElement.value.trim()
+        : "";
 
- 
-  const cleanPhone = phone.replace(/[\s()-]/g, "");
+    if (getCart().length === 0) {
+        alert("Сначала добавьте товар в корзину.");
+        return;
+    }
 
+    if (!fioRegex.test(name)) {
+        alert("Введите корректное ФИО: фамилию и имя.");
+        return;
+    }
 
-  if (!phoneRegex.test(cleanPhone)) {
-    alert("Введите номер Кыргызстана в формате +996555123456.");
-    return;
-  }
+    const cleanPhone = phone.replace(/[\s()-]/g, "");
 
+    if (!phoneRegex.test(cleanPhone)) {
+        alert("Введите номер Кыргызстана в формате +996555123456.");
+        return;
+    }
 
-  if (!emailRegex.test(email)) {
-    alert("Введите корректный адрес электронной почты.");
-    return;
-  }
+    if (!emailRegex.test(email)) {
+        alert("Введите корректный адрес электронной почты.");
+        return;
+    }
 
-  
-  if (address === "") {
-    alert("Введите адрес доставки.");
-    return;
-  }
+    if (address === "") {
+        alert("Введите адрес доставки.");
+        return;
+    }
 
-  alert(
-    "Спасибо, " + name +
-    "! Ваша заявка оформлена.\n" +
-    "Телефон: " + cleanPhone +
-    "\nEmail: " + email
-  );
+    alert(
+        "Спасибо, " + name +
+        "! Ваша заявка оформлена.\n" +
+        "Телефон: " + cleanPhone +
+        "\nEmail: " + email
+    );
 
-  saveCart([]);
-  event.target.reset();
+    saveCart([]);
+
+    event.target.reset();
 }
 
 
+// ==========================================
+// Запуск сайта
+// ==========================================
 
-document.addEventListener("DOMContentLoaded", function() {
-  let page = document.body.dataset.page;
+document.addEventListener("DOMContentLoaded", async function() {
 
-  if (page === "home") {
-    renderProducts(products.slice(0, 4));
-  }
+    await loadProducts();
 
-  if (page === "catalog") {
-    showCatalog("all");
-  }
+    const page = document.body.dataset.page;
 
-  if (page === "sneakers") {
-    showCatalog("sneakers");
-  }
-
-  if (page === "heels") {
-    showCatalog("heels");
-  }
-
-  if (page === "boots") {
-    showCatalog("boots");
-  }
-
-  if (page === "cart") {
-    showCart();
-  }
-
-  if (page === "favorites") {
-    showFavorites();
-  }
-
-  if (page === "product") {
-    showOneProduct();
-  }
-
-  if (page === "order") {
-    let form = document.getElementById("orderForm");
-
-    if (form) {
-      form.addEventListener("submit", submitOrder);
+    if (page === "home") {
+        renderProducts(products.slice(0, 4));
     }
-  }
-});
 
-```javascript
-// Анимация карточек товаров
+    if (page === "catalog") {
+        showCatalog("all");
+    }
 
-document.addEventListener("DOMContentLoaded", function() {
+    if (page === "sneakers") {
+        showCatalog("sneakers");
+    }
 
-  let cards = document.querySelectorAll(".product-card");
+    if (page === "heels") {
+        showCatalog("heels");
+    }
 
-  cards.forEach(card => {
+    if (page === "boots") {
+        showCatalog("boots");
+    }
 
-    // Событие 1: наведение мыши
-    card.addEventListener("mouseenter", function() {
-      card.style.transform = "translateY(-5px)";
-      card.style.boxShadow = "0 10px 20px rgba(0, 0, 0, 0.2)";
-    });
+    if (page === "cart") {
+        showCart();
+    }
 
-    // Событие 2: уход мыши
-    card.addEventListener("mouseleave", function() {
-      card.style.transform = "translateY(0)";
-      card.style.boxShadow = "";
-    });
+    if (page === "favorites") {
+        showFavorites();
+    }
 
-    // Событие 3: нажатие на карточку
-    card.addEventListener("click", function(event) {
+    if (page === "product") {
+        showOneProduct();
+    }
 
-      if (
-        event.target.closest("button") ||
-        event.target.closest("a")
-      ) {
-        return;
-      }
+    if (page === "order") {
 
-      card.style.transform = "scale(0.97)";
+        const form = document.getElementById("orderForm");
 
-      setTimeout(function() {
-        card.style.transform = "translateY(0)";
-      }, 200);
-
-    });
-
-  });
+        if (form) {
+            form.addEventListener("submit", submitOrder);
+        }
+    }
 
 });
-```
